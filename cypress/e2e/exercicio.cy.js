@@ -3,10 +3,15 @@ import { faker } from '@faker-js/faker';
 
 describe('Testes da Funcionalidade Catálogo de Livros', () => {
 
-     let token
+     let tokenAdm
+     let tokenUser
      beforeEach(() => {
           cy.geraToken('admin@biblioteca.com', 'admin123').then(tkn => {
-               token = tkn
+               tokenAdm = tkn
+          })
+
+          cy.geraToken('usuario@teste.com', 'user123').then(tkn => {
+               tokenUser = tkn
           })
      });
 
@@ -78,7 +83,7 @@ describe('Testes da Funcionalidade Catálogo de Livros', () => {
                method: 'POST',
                url: 'books',
                headers: {
-                    'Authorization': token
+                    'Authorization': tokenAdm
                },
                body: {
                     title: title,
@@ -107,28 +112,27 @@ describe('Testes da Funcionalidade Catálogo de Livros', () => {
      it('POST - Deve rejeitar cadastro de livro por usuário sem permissão', () => {
           let title = faker.book.title()
 
-          cy.geraToken('usuario@teste.com', 'user123').then(tkn => {
-               cy.api({
-                    method: 'POST',
-                    url: 'books',
-                    headers: {
-                         'Authorization': tkn
-                    },
-                    body: {
-                         title: title,
-                         author: "Aluísio Azevedo",
-                         category: "Literatura Brasileira",
-                         total_copies: 4,
-                         available_copies: 4
-                    },
-                    failOnStatusCode: false
+          cy.api({
+               method: 'POST',
+               url: 'books',
+               headers: {
+                    'Authorization': tokenUser
+               },
+               body: {
+                    title: title,
+                    author: "Aluísio Azevedo",
+                    category: "Literatura Brasileira",
+                    total_copies: 4,
+                    available_copies: 4
+               },
+               failOnStatusCode: false
 
-               }).should(response => {
-                    expect(response.status).to.equal(403)
-                    expect(response.body.message).to.equal('Acesso negado. Apenas administradores podem realizar esta ação.')
+          }).should(response => {
+               expect(response.status).to.equal(403)
+               expect(response.body.message).to.equal('Acesso negado. Apenas administradores podem realizar esta ação.')
 
-               })
           })
+
 
      });
 
@@ -140,7 +144,7 @@ describe('Testes da Funcionalidade Catálogo de Livros', () => {
                method: 'POST',
                url: 'books',
                headers: {
-                    'Authorization': token
+                    'Authorization': tokenAdm
                },
                body: {
                     title: title,
@@ -162,12 +166,12 @@ describe('Testes da Funcionalidade Catálogo de Livros', () => {
      it('PUT - Deve atualizar um livro previamente cadastrado', () => {
           let title = faker.book.title()
 
-          cy.cadastrarLivro(title, token).then(id => {
+          cy.cadastrarLivro(title, tokenAdm).then(id => {
                cy.api({
                     method: 'PUT',
                     url: 'books/' + id,
                     headers: {
-                         'Authorization': token
+                         'Authorization': tokenAdm
                     },
                     body: {
                          title: title,
@@ -186,28 +190,26 @@ describe('Testes da Funcionalidade Catálogo de Livros', () => {
 
      it('PUT - Deve rejeitar atualização de livro por usuário sem permissão', () => {
           let title = faker.book.title()
-          cy.geraToken('usuario@teste.com', 'user123').then(tkn => {
 
-               cy.cadastrarLivro(title, token).then(id => {
-                    cy.api({
-                         method: 'PUT',
-                         url: 'books/' + id,
-                         headers: {
-                              'Authorization': tkn
-                         },
-                         body: {
-                              title: title,
-                              author: "Aluísio Azevedo alterado",
-                              category: "Literatura Brasileira",
-                              total_copies: 4,
-                              available_copies: 4
-                         },
-                         failOnStatusCode: false
-                    }).should(response => {
-                         expect(response.status).to.equal(403)
-                         expect(response.body.message).to.equal('Acesso negado. Apenas administradores podem realizar esta ação.')
+          cy.cadastrarLivro(title, tokenAdm).then(id => {
+               cy.api({
+                    method: 'PUT',
+                    url: 'books/' + id,
+                    headers: {
+                         'Authorization': tokenUser
+                    },
+                    body: {
+                         title: title,
+                         author: "Aluísio Azevedo alterado",
+                         category: "Literatura Brasileira",
+                         total_copies: 4,
+                         available_copies: 4
+                    },
+                    failOnStatusCode: false
+               }).should(response => {
+                    expect(response.status).to.equal(403)
+                    expect(response.body.message).to.equal('Acesso negado. Apenas administradores podem realizar esta ação.')
 
-                    })
                })
           })
      });
@@ -217,12 +219,12 @@ describe('Testes da Funcionalidade Catálogo de Livros', () => {
      it('DELETE - Deve deletar um livro previamente cadastrado', () => {
           let title = faker.book.title()
 
-          cy.cadastrarLivro(title, token).then(id => {
+          cy.cadastrarLivro(title, tokenAdm).then(id => {
                cy.api({
                     method: 'DELETE',
                     url: 'books/' + id,
                     headers: {
-                         'Authorization': token
+                         'Authorization': tokenAdm
                     }
                }).should(response => {
                     expect(response.status).to.equal(200)
@@ -234,21 +236,19 @@ describe('Testes da Funcionalidade Catálogo de Livros', () => {
 
      it('DELETE - Deve rejeitar exclusão de livro por usuário sem permissão', () => {
           let title = faker.book.title()
-          cy.geraToken('usuario@teste.com', 'user123').then(tkn => {
 
-               cy.cadastrarLivro(title, token).then(id => {
-                    cy.api({
-                         method: 'DELETE',
-                         url: 'books/' + id,
-                         headers: {
-                              'Authorization': tkn
-                         },
-                         failOnStatusCode: false
-                    }).should(response => {
-                         expect(response.status).to.equal(403)
-                         expect(response.body.message).to.equal('Acesso negado. Apenas administradores podem realizar esta ação.')
+          cy.cadastrarLivro(title, tokenAdm).then(id => {
+               cy.api({
+                    method: 'DELETE',
+                    url: 'books/' + id,
+                    headers: {
+                         'Authorization': tokenUser
+                    },
+                    failOnStatusCode: false
+               }).should(response => {
+                    expect(response.status).to.equal(403)
+                    expect(response.body.message).to.equal('Acesso negado. Apenas administradores podem realizar esta ação.')
 
-                    })
                })
           })
      });
